@@ -1,0 +1,2118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Student Dashboard — by Parekh Payal</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{--bg:#eef1f8;--card:#fff;--text:#151a2d;--muted:#6b7280;--line:#e5e8f0;--radius:16px}
+  html,body{overflow-x:hidden}
+  body{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;
+       background:var(--bg);color:var(--text);padding:18px;-webkit-font-smoothing:antialiased}
+  .app{max-width:1600px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+
+  .topbar{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between;
+    background:linear-gradient(120deg,#1e1b4b,#312e81 45%,#4f46e5);color:#fff;
+    padding:18px 22px;border-radius:var(--radius);box-shadow:0 12px 32px rgba(49,46,129,.28)}
+  .brand{display:flex;align-items:center;gap:14px}
+  .logo{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;
+    background:linear-gradient(135deg,#f472b6,#8b5cf6);font-weight:800;font-size:16px;
+    border:1px solid rgba(255,255,255,.35);letter-spacing:-.5px;color:#fff;
+    box-shadow:0 6px 16px rgba(139,92,246,.5)}
+  .topbar h1{font-size:19px;font-weight:700}
+  .topbar p{font-size:12.5px;opacity:.85;margin-top:3px}
+  .topbar .credit{font-size:11.5px;opacity:.9;margin-top:4px}
+  .topbar .credit b{color:#fbbf24}
+  .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .search{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);
+    color:#fff;padding:10px 14px;border-radius:11px;font-size:13px;min-width:220px;outline:none}
+  .search::placeholder{color:rgba(255,255,255,.62)}
+  .search:focus{background:rgba(255,255,255,.22)}
+  .btn{background:#fff;color:#312e81;border:0;padding:10px 16px;border-radius:11px;
+    font-size:13px;font-weight:600;cursor:pointer;transition:.15s}
+  .btn:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(0,0,0,.18)}
+  .btn.ghost{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.28)}
+  .btn:disabled{opacity:.55;cursor:not-allowed}
+  .btn-sm{background:#312e81;color:#fff;border:0;padding:8px 14px;border-radius:9px;
+    font-size:12.5px;font-weight:600;cursor:pointer;transition:.15s}
+  .btn-sm:hover{background:#4f46e5}
+  .btn-sm.red{background:#ef4444}
+  .btn-sm.red:hover{background:#dc2626}
+  .btn-sm.green{background:#10b981}
+  .btn-sm.green:hover{background:#059669}
+  .btn-sm.amber{background:#f59e0b}
+  .btn-sm.amber:hover{background:#d97706}
+  .btn-sm:disabled{opacity:.5;cursor:not-allowed}
+
+  .tabs{display:flex;gap:6px;background:#fff;padding:6px;border-radius:14px;
+    border:1px solid var(--line);overflow-x:auto}
+  .tab{padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;
+    color:#64748b;cursor:pointer;white-space:nowrap;transition:.15s;border:0;background:transparent}
+  .tab:hover{background:#f5f6fb;color:#312e81}
+  .tab.active{background:#312e81;color:#fff}
+  .tab .badge{display:inline-block;background:rgba(255,255,255,.22);color:inherit;
+    padding:1px 7px;border-radius:999px;font-size:11px;margin-left:6px}
+  .tab.active .badge{background:rgba(255,255,255,.28)}
+
+  .section{display:none;flex-direction:column;gap:16px}
+  .section.active{display:flex}
+
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:13px}
+  .kpi{position:relative;overflow:hidden;background:var(--card);border:1px solid var(--line);
+    border-radius:var(--radius);padding:16px 16px 16px 20px;cursor:pointer;
+    transition:.18s;box-shadow:0 2px 10px rgba(16,24,40,.05)}
+  .kpi:hover{transform:translateY(-3px);box-shadow:0 12px 26px rgba(16,24,40,.13)}
+  .kpi.active{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+  .kpi .bar{position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--accent)}
+  .kpi .lbl{font-size:11.5px;font-weight:600;text-transform:uppercase;
+    letter-spacing:.6px;color:var(--muted)}
+  .kpi .num{font-size:30px;font-weight:700;margin-top:6px;letter-spacing:-1px;color:var(--accent)}
+  .kpi .sub{font-size:11.5px;color:var(--muted);margin-top:4px}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:18px;box-shadow:0 2px 10px rgba(16,24,40,.05)}
+  .charts{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:900px){.charts{grid-template-columns:1fr}}
+  .card-head{display:flex;align-items:center;justify-content:space-between;
+    gap:12px;margin-bottom:14px;flex-wrap:wrap}
+  .card-head h3{font-size:15px;font-weight:700}
+  .muted{color:var(--muted);font-size:12px}
+  .chart-box{position:relative;height:360px}
+  .chart-box.tall{height:520px}
+
+  .chips{display:flex;flex-wrap:wrap;gap:7px}
+  .chip{border:1px solid var(--line);background:#f7f8fc;color:#4b5563;
+    padding:6px 12px;border-radius:999px;font-size:12px;font-weight:600;cursor:pointer;transition:.15s}
+  .chip:hover{background:#eef0f8}
+  .chip.active{background:#312e81;border-color:#312e81;color:#fff}
+
+  .filter-bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:10px;padding:14px;background:#f7f8fc;border:1px solid var(--line);border-radius:12px}
+  .filter-item{display:flex;flex-direction:column;gap:4px;min-width:0}
+  .filter-item label{font-size:10.5px;font-weight:700;color:var(--muted);
+    text-transform:uppercase;letter-spacing:.6px}
+  .filter-select{padding:9px 12px;border:1px solid var(--line);border-radius:10px;
+    background:#fff;font-size:13px;font-family:inherit;color:var(--text);
+    width:100%;outline:none;cursor:pointer}
+  .filter-select:focus{border-color:#4f46e5;box-shadow:0 0 0 3px rgba(79,70,229,.12)}
+  .filter-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+  .filter-clear{background:#ef4444;color:#fff;border:0;padding:9px 14px;
+    border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;height:38px}
+  .filter-clear:hover{background:#dc2626}
+  .active-filters{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .filter-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;
+    background:#eef2ff;color:#4f46e5;border-radius:999px;font-size:11.5px;font-weight:600}
+  .filter-pill b{color:#1e1b4b}
+  .filter-pill .x{cursor:pointer;font-weight:800;padding:0 2px}
+
+  .table-wrap{overflow:auto;max-height:660px;border-radius:12px;border:1px solid var(--line);background:#fff}
+  table{width:100%;border-collapse:collapse;font-size:13px;min-width:960px}
+  thead th{position:sticky;top:0;z-index:2;background:#f7f8fc;text-align:left;
+    padding:12px 13px;font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;
+    color:var(--muted);border-bottom:1px solid var(--line);white-space:nowrap}
+  tbody td{padding:11px 13px;border-bottom:1px solid #f1f3f9;vertical-align:middle}
+  tbody tr:hover{background:#fafbff}
+  .nm{font-weight:600}
+  .em{color:var(--muted);font-size:12.5px}
+  .tag{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;
+    font-weight:700;margin:2px 4px 2px 0;color:#fff;white-space:nowrap}
+  .num-cell{font-variant-numeric:tabular-nums;text-align:right}
+  .empty{padding:38px;text-align:center;color:var(--muted);font-size:13.5px}
+  .foot{font-size:12px;color:var(--muted);text-align:center;padding:10px 0 22px;line-height:1.8}
+  .foot .sig{font-size:13px;font-weight:700;color:#312e81;
+    display:inline-flex;align-items:center;gap:6px;margin-bottom:6px}
+  .foot .sig span{background:linear-gradient(135deg,#f472b6,#8b5cf6);
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .foot .sheet-list{font-size:11px;opacity:.85;word-break:break-word}
+
+  .prog{display:flex;align-items:center;gap:8px;min-width:110px}
+  .prog-bar{flex:1;height:6px;background:#eef0f8;border-radius:999px;overflow:hidden}
+  .prog-fill{height:100%;border-radius:999px}
+
+  .group-card{background:#fff;border:1px solid var(--line);border-left:5px solid #4f46e5;
+    border-radius:14px;margin-bottom:14px;transition:.15s;overflow:hidden}
+  .group-card:hover{border-color:#c7cbd8;box-shadow:0 6px 20px rgba(16,24,40,.09)}
+  .group-head{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;
+    justify-content:space-between;padding:16px 20px;
+    background:linear-gradient(90deg,#f7f8fc,#fff)}
+  .group-head .left{flex:1 1 420px;min-width:0}
+  .group-head .right{flex:0 1 auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .group-title{font-size:16px;font-weight:700;color:#1e1b4b;line-height:1.35;
+    margin-bottom:6px;word-break:break-word}
+  .gid-badge{display:inline-block;padding:3px 10px;border-radius:6px;
+    background:#312e81;color:#fff;font-size:12px;font-weight:800;margin-right:8px;vertical-align:middle}
+  .faculty-badge{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;
+    border-radius:10px;background:linear-gradient(135deg,#4f46e5,#8b5cf6);color:#fff;
+    font-size:12.5px;font-weight:700;box-shadow:0 3px 10px rgba(79,70,229,.28);max-width:100%}
+  .faculty-badge .avatar{width:22px;height:22px;border-radius:50%;
+    background:rgba(255,255,255,.25);display:grid;place-items:center;font-size:11px;font-weight:800}
+  .faculty-badge .name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:260px}
+  .faculty-badge .role{font-size:9.5px;opacity:.85;text-transform:uppercase;
+    letter-spacing:.7px;margin-left:2px}
+  .group-meta{display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;color:var(--muted);
+    margin-top:8px;align-items:center}
+  .group-meta b{color:#312e81;font-weight:700}
+  .group-members{padding:0 20px 16px;border-top:1px dashed var(--line);margin-top:0;padding-top:12px}
+  .group-members h4{font-size:12px;font-weight:700;color:#4b5563;
+    text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px}
+  .group-members table{min-width:100%;width:100%}
+  .group-members thead th{background:transparent;font-size:10.5px;padding:6px 8px;
+    border-bottom:1px solid #e5e8f0;position:static}
+  .group-members tbody td{padding:7px 8px;font-size:12.5px;border-bottom:1px solid #f5f6fa}
+  .mentor-inline{display:inline-flex;align-items:center;padding:2px 8px;
+    background:#eef2ff;color:#4f46e5;border-radius:6px;font-size:11px;font-weight:700}
+
+  .heat-table{width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px;min-width:900px}
+  .heat-table th,.heat-table td{padding:9px 10px;text-align:center;
+    border-bottom:1px solid #f0f2f8;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .heat-table th{background:#f7f8fc;font-size:11px;text-transform:uppercase;
+    letter-spacing:.5px;color:var(--muted);font-weight:700;position:sticky;top:0;z-index:1}
+  .heat-table td.fac-name{text-align:left;font-weight:600;color:#1e1b4b;
+    white-space:normal;min-width:170px}
+  .heat-table td.val{font-weight:700}
+  .heat-table tbody tr:hover{background:#fafbff}
+
+  .fac-group-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+  .fac-group-card{background:#fff;border:1px solid var(--line);border-radius:12px;
+    padding:14px;transition:.15s}
+  .fac-group-card:hover{border-color:#c7cbd8;box-shadow:0 4px 14px rgba(16,24,40,.07)}
+  .fac-group-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .fac-group-head .avatar{width:34px;height:34px;border-radius:10px;
+    background:linear-gradient(135deg,#4f46e5,#8b5cf6);color:#fff;
+    display:grid;place-items:center;font-weight:800;font-size:14px;flex-shrink:0}
+  .fac-group-head .info{flex:1;min-width:0}
+  .fac-group-head .name{font-size:13.5px;font-weight:700;color:#1e1b4b;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .fac-group-head .stats{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .fac-group-list{display:flex;flex-direction:column;gap:6px}
+  .fac-group-item{display:flex;align-items:center;gap:8px;padding:7px 10px;
+    background:#f7f8fc;border-radius:8px;font-size:12px;cursor:pointer;
+    transition:.12s;border:1px solid transparent}
+  .fac-group-item:hover{background:#eef2ff;border-color:#c7d2fe}
+  .fac-group-item .gid{background:#312e81;color:#fff;padding:1px 7px;
+    border-radius:5px;font-size:10.5px;font-weight:800;flex-shrink:0}
+  .fac-group-item .gtopic{flex:1;color:#374151;overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap}
+  .fac-group-item .gscore{color:#059669;font-weight:700;font-size:11px;flex-shrink:0}
+
+  /* ===== FACULTY → GROUPS → STUDENTS (NEW) ===== */
+  .fac-view-card{background:#fff;border:1px solid var(--line);border-left:5px solid #4f46e5;
+    border-radius:14px;margin-bottom:12px;overflow:hidden;transition:.15s}
+  .fac-view-card:hover{box-shadow:0 6px 20px rgba(16,24,40,.09)}
+  .fac-view-head{display:flex;align-items:center;gap:12px;padding:14px 18px;
+    background:linear-gradient(90deg,#f7f8fc,#fff);cursor:pointer;user-select:none}
+  .fac-view-head .avatar{width:38px;height:38px;border-radius:11px;
+    background:linear-gradient(135deg,#4f46e5,#8b5cf6);color:#fff;display:grid;
+    place-items:center;font-weight:800;font-size:15px;flex-shrink:0}
+  .fac-view-head .info{flex:1;min-width:0}
+  .fac-view-head .name{font-size:14.5px;font-weight:700;color:#1e1b4b;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .fac-view-head .stats{font-size:11.5px;color:var(--muted);margin-top:3px}
+  .fac-view-head .caret{font-size:16px;color:#4f46e5;font-weight:800}
+  .fac-view-body{padding:12px 18px 18px;border-top:1px dashed var(--line)}
+  .fv-group{border:1px solid var(--line);border-radius:12px;margin-bottom:10px;overflow:hidden}
+  .fv-group:last-child{margin-bottom:0}
+  .fv-group-head{display:flex;flex-wrap:wrap;gap:10px;align-items:center;
+    padding:10px 14px;background:#f7f8fc;border-bottom:1px solid var(--line)}
+  .fv-group-head .topic{font-weight:600;font-size:12.5px;color:#1e1b4b;flex:1;min-width:160px}
+  .fv-group-head .meta{font-size:11.5px;color:var(--muted);white-space:nowrap}
+  .fv-scroll{overflow:auto}
+  .fv-table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:820px}
+  .fv-table thead th{background:#fff;text-align:left;padding:8px 12px;font-size:10.5px;
+    text-transform:uppercase;letter-spacing:.5px;color:var(--muted);
+    border-bottom:1px solid var(--line);white-space:nowrap;position:static}
+  .fv-table tbody td{padding:8px 12px;border-bottom:1px solid #f5f6fa;vertical-align:middle}
+  .fv-table tbody tr:hover{background:#fafbff}
+  .fv-table .num-cell{text-align:right;font-variant-numeric:tabular-nums}
+
+  /* ===== CLASSROOM ALLOCATION ===== */
+  .room-setup{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:10px;align-items:end;
+    padding:14px;background:#f7f8fc;border-radius:12px;border:1px solid var(--line);
+    margin-bottom:10px}
+  @media(max-width:900px){.room-setup{grid-template-columns:1fr 1fr}}
+  @media(max-width:600px){.room-setup{grid-template-columns:1fr}}
+  .room-input{padding:10px 12px;border:1px solid var(--line);border-radius:9px;
+    font-size:13px;width:100%;outline:none;font-family:inherit}
+  .room-input:focus{border-color:#4f46e5;box-shadow:0 0 0 3px rgba(79,70,229,.12)}
+
+  .fac-inputs-wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:10px;margin-bottom:14px;padding:12px 14px;background:#eef2ff;
+    border:1px dashed #c7d2fe;border-radius:12px}
+  .fac-inputs-wrap.hidden{display:none}
+  .fac-input-item{display:flex;flex-direction:column;gap:4px;min-width:0}
+  .fac-input-item label{font-size:10.5px;font-weight:700;color:#4f46e5;
+    text-transform:uppercase;letter-spacing:.6px}
+  .fac-input-item input{padding:9px 12px;border:1px solid #c7d2fe;border-radius:9px;
+    font-size:13px;width:100%;outline:none;font-family:inherit;background:#fff}
+  .fac-input-item input:focus{border-color:#4f46e5;box-shadow:0 0 0 3px rgba(79,70,229,.12)}
+
+  .room-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+    gap:10px;margin-bottom:14px}
+  .room-chip{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:12px 14px;transition:.15s}
+  .room-chip:hover{border-color:#c7cbd8}
+  .room-chip .head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+  .room-chip .name{font-weight:700;color:#1e1b4b;font-size:13.5px}
+  .room-chip .cap{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .room-chip .x{cursor:pointer;color:#ef4444;font-weight:800;font-size:16px;line-height:1;
+    padding:2px 6px;border-radius:6px;transition:.15s}
+  .room-chip .x:hover{background:#fee2e2}
+  .room-chip .fac-list{margin-top:8px;padding-top:8px;border-top:1px dashed #e5e8f0;
+    display:flex;flex-wrap:wrap;gap:5px}
+  .room-chip .fac-tag{display:inline-flex;align-items:center;gap:4px;
+    padding:3px 9px;background:#eef2ff;color:#4f46e5;border-radius:999px;
+    font-size:11px;font-weight:700}
+  .room-chip .fac-tag .num{background:#4f46e5;color:#fff;padding:0 5px;
+    border-radius:999px;font-size:9.5px;font-weight:800}
+
+  .alloc-table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:1200px}
+  .alloc-table thead th{position:sticky;top:0;z-index:2;background:#eef2ff;
+    color:#312e81;font-weight:700;font-size:11px;text-transform:uppercase;
+    letter-spacing:.5px;padding:11px 12px;border-bottom:2px solid #c7d2fe;
+    text-align:left;white-space:nowrap}
+  .alloc-table tbody td{padding:10px 12px;border-bottom:1px solid #f1f3f9;
+    vertical-align:middle}
+  .alloc-table tbody tr:hover{background:#fafbff}
+  .alloc-table tbody tr.room-row{background:linear-gradient(90deg,#eef2ff,#f8f9ff);}
+  .alloc-table tbody tr.room-row td{padding:11px 12px;border-top:2px solid #c7d2fe;
+    border-bottom:2px solid #c7d2fe;font-size:12.5px;color:#1e1b4b;font-weight:700}
+  .alloc-table tbody tr.fac-row{background:#f0fdf4;}
+  .alloc-table tbody tr.fac-row td{padding:8px 12px;border-bottom:1px solid #bbf7d0;
+    font-size:12px;color:#15803d;font-weight:700}
+  .alloc-table .room-pill{display:inline-flex;align-items:center;gap:6px;
+    background:linear-gradient(135deg,#4f46e5,#8b5cf6);color:#fff;
+    padding:4px 12px;border-radius:8px;font-size:12px;font-weight:800;
+    box-shadow:0 2px 6px rgba(79,70,229,.25)}
+  .alloc-table .room-pill .dot{width:6px;height:6px;border-radius:50%;background:#fff}
+  .alloc-table .fac-pill{display:inline-flex;align-items:center;gap:5px;
+    background:#10b981;color:#fff;padding:3px 10px;border-radius:7px;
+    font-size:11.5px;font-weight:700;box-shadow:0 2px 5px rgba(16,185,129,.25)}
+  .alloc-table .fac-pill .avatar{width:18px;height:18px;border-radius:50%;
+    background:rgba(255,255,255,.25);display:grid;place-items:center;
+    font-size:9.5px;font-weight:800}
+
+  .alloc-stats{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--muted);
+    margin-bottom:10px}
+  .alloc-stats .stat{display:inline-flex;align-items:center;gap:6px}
+  .alloc-stats .stat b{color:#1e1b4b;font-weight:700}
+
+  .loader{position:fixed;inset:0;background:rgba(238,241,248,.94);display:flex;
+    flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:99;
+    font-size:13.5px;color:#4b5563;font-weight:600}
+  .spinner{width:42px;height:42px;border:4px solid #d9ddee;border-top-color:#4f46e5;
+    border-radius:50%;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  [hidden]{display:none !important}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">PP</div>
+      <div>
+        <h1>Student Dashboard</h1>
+        <p id="subtitle">Connecting to Google Sheet…</p>
+        <p class="credit">Created by <b>Parekh Payal</b></p>
+      </div>
+    </div>
+    <div class="actions">
+      <input id="search" class="search" type="search" placeholder="Search name / enrollment / topic / faculty…" autocomplete="off">
+      <button id="btnRefresh" class="btn">⟳ Refresh</button>
+      <button id="btnExport" class="btn ghost">⭳ Export CSV</button>
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabs"></nav>
+
+  <!-- ============ OVERVIEW ============ -->
+  <section class="section active" data-tab="overview">
+    <div class="kpis" id="kpis"></div>
+    <div class="charts">
+      <div class="card">
+        <div class="card-head"><h3>Category Distribution</h3><span class="muted">students per category</span></div>
+        <div class="chart-box"><canvas id="donut"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>Category Overview</h3><span class="muted">count comparison</span></div>
+        <div class="chart-box"><canvas id="bar"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h3 id="tableTitle">All Students</h3>
+        <div class="chips" id="chips"></div>
+      </div>
+      <div class="filter-bar">
+        <div class="filter-item">
+          <label>🎓 Course</label>
+          <select id="filterCourse" class="filter-select"><option value="">All Courses</option></select>
+        </div>
+        <div class="filter-item">
+          <label>👨‍🏫 Faculty / Guide</label>
+          <select id="filterFaculty" class="filter-select"><option value="">All Faculty</option></select>
+        </div>
+        <div class="filter-item">
+          <label>📁 Project Topic</label>
+          <select id="filterProject" class="filter-select"><option value="">All Projects</option></select>
+        </div>
+        <div class="filter-item">
+          <label>🎯 Group</label>
+          <select id="filterGroup" class="filter-select"><option value="">All Groups</option></select>
+        </div>
+        <div class="filter-item">
+          <label>&nbsp;</label>
+          <div class="filter-actions">
+            <button id="clearFilters" class="filter-clear">✕ Clear All</button>
+          </div>
+        </div>
+      </div>
+      <div class="active-filters" id="activeFilters"></div>
+
+      <div class="table-wrap" style="margin-top:12px">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>Enrollment</th><th>Name</th><th>Course</th>
+              <th>Division</th><th>Group</th><th>Faculty</th><th>Categories</th><th>Topic</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+        <div id="empty" class="empty" hidden>No matching records found.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ GROUPS ============ -->
+  <section class="section" data-tab="groups">
+    <div class="card">
+      <div class="card-head"><h3>Groups by Faculty Allocation</h3>
+        <span class="muted">each card = one faculty · click a group to filter students</span></div>
+      <div class="fac-group-grid" id="facGroupGrid"></div>
+    </div>
+
+    <div class="charts">
+      <div class="card">
+        <div class="card-head"><h3>Group-wise Average Total Score</h3><span class="muted">out of 100 · top 25 groups</span></div>
+        <div class="chart-box tall"><canvas id="groupScoreChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>Group-wise Review Averages</h3><span class="muted">stacked by review · top 15 groups</span></div>
+        <div class="chart-box tall"><canvas id="groupReviewChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>Groups vs Reviews Comparison</h3>
+        <span class="muted">click column headers to sort</span></div>
+      <div class="table-wrap">
+        <table id="groupHeatTable" class="heat-table">
+          <thead>
+            <tr>
+              <th data-sort="serial" style="text-align:left;cursor:pointer">Group</th>
+              <th data-sort="topic" style="text-align:left;cursor:pointer">Topic</th>
+              <th data-sort="mentor" style="text-align:left;cursor:pointer">Faculty</th>
+              <th data-sort="memberCount" style="cursor:pointer">Members</th>
+              <th data-sort="avgR1" style="cursor:pointer">R1 /5</th>
+              <th data-sort="avgR2" style="cursor:pointer">R2 /10</th>
+              <th data-sort="avgR3" style="cursor:pointer">R3 /15</th>
+              <th data-sort="avgR4" style="cursor:pointer">R4 /20</th>
+              <th data-sort="avgR5" style="cursor:pointer">R5 /20</th>
+              <th data-sort="avgR6" style="cursor:pointer">R6 /30</th>
+              <th data-sort="avgTotal" style="cursor:pointer">Avg Total</th>
+            </tr>
+          </thead>
+          <tbody id="groupHeatBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>Project Groups</h3><span class="muted" id="groupsCount"></span></div>
+      <div class="chips" id="groupSortChips" style="margin-bottom:12px"></div>
+      <div id="groupsContainer"></div>
+      <div id="groupsEmpty" class="empty" hidden>No groups found.</div>
+    </div>
+  </section>
+
+  <!-- ============ FACULTY ============ -->
+  <section class="section" data-tab="faculty">
+    <div class="charts">
+      <div class="card">
+        <div class="card-head"><h3>Faculty Radar — Review Averages</h3><span class="muted">% of max per review · top 6 faculty</span></div>
+        <div class="chart-box tall"><canvas id="facultyRadar"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>Faculty-wise Review Breakdown</h3><span class="muted">avg marks per review · top 10 faculty</span></div>
+        <div class="chart-box tall"><canvas id="facultyStacked"></canvas></div>
+      </div>
+    </div>
+
+    <div class="charts">
+      <div class="card">
+        <div class="card-head"><h3>Review Marks — Global Averages</h3><span class="muted">avg per review vs max</span></div>
+        <div class="chart-box"><canvas id="reviewChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>Top Faculty by Average Score</h3><span class="muted">avg total out of 100</span></div>
+        <div class="chart-box"><canvas id="facultyChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- ===== NEW: FACULTY → GROUPS → STUDENTS ===== -->
+    <div class="card">
+      <div class="card-head">
+        <h3>👨‍🏫 Faculty → Groups → Students</h3>
+        <span class="muted">group-wise &amp; all-students-wise view for every faculty</span>
+      </div>
+
+      <div class="chips" id="facViewChips" style="margin-bottom:12px"></div>
+
+      <div class="filter-bar" style="margin-bottom:12px">
+        <div class="filter-item">
+          <label>👨‍🏫 Faculty</label>
+          <select id="facViewFaculty" class="filter-select"><option value="">All Faculty</option></select>
+        </div>
+        <div class="filter-item">
+          <label>🎯 Group</label>
+          <select id="facViewGroup" class="filter-select"><option value="">All Groups</option></select>
+        </div>
+        <div class="filter-item">
+          <label>🔎 Search Student</label>
+          <input id="facViewSearch" class="filter-select" type="search"
+                 placeholder="name / enrollment / technology…" autocomplete="off">
+        </div>
+        <div class="filter-item">
+          <label>&nbsp;</label>
+          <div class="filter-actions">
+            <button id="facViewExpand" class="btn-sm">⤢ Expand all</button>
+            <button id="facViewCollapse" class="btn-sm">⤡ Collapse all</button>
+            <button id="facViewExport" class="btn-sm green">⭳ Export Excel</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="facViewContainer"></div>
+      <div id="facViewEmpty" class="empty" hidden>No students / groups found for the selected filters.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>Review Statistics</h3><span class="muted">global completion per review</span></div>
+      <div id="reviewStats" class="kpis"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>Faculty vs Review Heatmap</h3><span class="muted">color = % of max · higher is better</span></div>
+      <div class="table-wrap">
+        <table id="facultyHeat" class="heat-table">
+          <thead>
+            <tr>
+              <th style="text-align:left">Faculty</th>
+              <th>Students</th><th>Groups</th>
+              <th>R1 /5</th><th>R2 /10</th><th>R3 /15</th>
+              <th>R4 /20</th><th>R5 /20</th><th>R6 /30</th>
+              <th>Avg Total /100</th>
+            </tr>
+          </thead>
+          <tbody id="facultyHeatBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>Faculty / Mentor Analysis</h3><span class="muted">click headers to sort · includes group allocation</span></div>
+      <div class="table-wrap">
+        <table id="facultyTable">
+          <thead>
+            <tr>
+              <th data-sort="name">Faculty</th>
+              <th data-sort="totalStudents" class="num-cell">Students</th>
+              <th data-sort="totalGroups" class="num-cell">Groups</th>
+              <th data-sort="udp" class="num-cell">UDP</th>
+              <th data-sort="idp" class="num-cell">IDP</th>
+              <th data-sort="consultancy" class="num-cell">Consul.</th>
+              <th data-sort="avgR1" class="num-cell">Avg R1 /5</th>
+              <th data-sort="avgR2" class="num-cell">Avg R2 /10</th>
+              <th data-sort="avgR3" class="num-cell">Avg R3 /15</th>
+              <th data-sort="avgR4" class="num-cell">Avg R4 /20</th>
+              <th data-sort="avgR5" class="num-cell">Avg R5 /20</th>
+              <th data-sort="avgR6" class="num-cell">Avg R6 /30</th>
+              <th data-sort="avgTotal" class="num-cell">Avg Total /100</th>
+              <th data-sort="completionPct">Completion</th>
+            </tr>
+          </thead>
+          <tbody id="facultyBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CLASSROOM ALLOCATION ============ -->
+  <section class="section" data-tab="rooms">
+    <div class="card">
+      <div class="card-head">
+        <h3>🏫 Classroom / Lab Allocation</h3>
+        <span class="muted">Set rooms + faculty per room → groups split equally among those faculty</span>
+      </div>
+
+      <div class="room-setup">
+        <div class="filter-item">
+          <label>Room / Lab Name</label>
+          <input id="roomNameInput" class="room-input" type="text" placeholder="e.g., Classroom 101, Lab A…">
+        </div>
+        <div class="filter-item">
+          <label>Capacity (students)</label>
+          <input id="roomCapInput" class="room-input" type="number" min="1" placeholder="e.g., 60">
+        </div>
+        <div class="filter-item">
+          <label># of Faculty in this Room</label>
+          <input id="roomFacCountInput" class="room-input" type="number" min="1" value="1">
+        </div>
+        <div class="filter-item" style="justify-content:flex-end">
+          <label>&nbsp;</label>
+          <button id="addRoomBtn" class="btn-sm green" style="height:40px;width:100%">+ Add Room</button>
+        </div>
+      </div>
+
+      <div id="facInputsWrap" class="fac-inputs-wrap"></div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+        <button id="autoGenRoomsBtn" class="btn-sm">⚡ Auto-generate rooms (1 faculty each)</button>
+        <button id="clearRoomsBtn" class="btn-sm red">🗑 Clear all rooms</button>
+        <button id="allocateBtn" class="btn-sm amber">🎯 Allocate Groups →</button>
+      </div>
+
+      <h4 style="font-size:12px;font-weight:700;color:#4b5563;text-transform:uppercase;
+        letter-spacing:.6px;margin-bottom:10px">
+        Rooms / Labs (<span id="roomCount">0</span>)</h4>
+      <div class="room-list" id="roomList"></div>
+      <div id="noRooms" class="empty" hidden>No rooms yet. Add some or auto-generate.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h3>Classroom-wise Student Sheet</h3>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <span class="muted" id="allocSummary"></span>
+          <button id="downloadAllocBtn" class="btn-sm green" disabled>⭳ Download Excel</button>
+        </div>
+      </div>
+
+      <div class="alloc-stats" id="allocStats"></div>
+
+      <div id="allocContainer" hidden>
+        <div class="table-wrap" style="max-height:720px">
+          <table class="alloc-table">
+            <thead>
+              <tr>
+                <th style="width:50px">#</th>
+                <th>Classroom / Lab</th>
+                <th>Group</th>
+                <th>Group Name / Topic</th>
+                <th>Enrollment No</th>
+                <th>Student Name</th>
+                <th>Contact No</th>
+                <th>Technology</th>
+                <th>Faculty Name</th>
+              </tr>
+            </thead>
+            <tbody id="allocBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="allocEmpty" class="empty" hidden>Click "Allocate Groups →" to generate the classroom-wise sheet.</div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <div class="sig">✦ Designed &amp; Developed by <span>Parekh Payal</span> ✦</div>
+    <div class="sheet-list" id="foot"></div>
+  </footer>
+</div>
+
+<div id="loader" class="loader"><div class="spinner"></div><span>Loading dashboard…</span></div>
+
+<script>
+/* ============================================================ */
+const CAT = [
+  { key:'udp',          label:'UDP',           color:'#6366f1' },
+  { key:'idp',          label:'IDP',           color:'#06b6d4' },
+  { key:'consultancy',  label:'Consultancy',   color:'#f59e0b' },
+  { key:'hold',         label:'Hold',          color:'#ef4444' },
+  { key:'exchange',     label:'SIM / Exchange',color:'#8b5cf6' },
+  { key:'notSubmitted', label:'Not Submitted', color:'#f43f5e' }
+];
+
+const KPI = [
+  { key:'total',        label:'Total Students', color:'#4f46e5', filter:'all' },
+  { key:'totalGroups',  label:'Total Groups',   color:'#0ea5e9', filter:'groups' },
+  { key:'udp',          label:'UDP',            color:'#6366f1', filter:'udp' },
+  { key:'idp',          label:'IDP',            color:'#06b6d4', filter:'idp' },
+  { key:'consultancy',  label:'Consultancy',    color:'#f59e0b', filter:'consultancy' },
+  { key:'hold',         label:'Hold',           color:'#ef4444', filter:'hold' },
+  { key:'exchange',     label:'SIM / Exchange', color:'#8b5cf6', filter:'exchange' },
+  { key:'notSubmitted', label:'Not Submitted',  color:'#f43f5e', filter:'notSubmitted' }
+];
+
+const CHIPS = [
+  { key:'all', label:'All' }, { key:'udp', label:'UDP' }, { key:'idp', label:'IDP' },
+  { key:'consultancy', label:'Consultancy' }, { key:'hold', label:'Hold' },
+  { key:'exchange', label:'SIM / Exchange' }, { key:'notSubmitted', label:'Not Submitted' }
+];
+
+const TABS = [
+  { key:'overview', label:'Overview' },
+  { key:'groups',   label:'Groups' },
+  { key:'faculty',  label:'Faculty Analysis' },
+  { key:'rooms',    label:'Classroom Allocation' }
+];
+
+const GROUP_SORTS = [
+  { key:'serial',   label:'By #' },
+  { key:'members',  label:'By Members' },
+  { key:'avgScore', label:'By Avg Score' },
+  { key:'topic',    label:'By Topic (A–Z)' },
+  { key:'faculty',  label:'By Faculty (A–Z)' }
+];
+
+const REVIEW_KEYS = ['r1','r2','r3','r4','r5','r6'];
+const REVIEW_MAX  = { r1:5, r2:10, r3:15, r4:20, r5:20, r6:30 };
+const ROOMS_LS_KEY = 'student_dashboard_rooms_v2';
+
+/* ============================================================ */
+let DATA = null;
+let donutChart=null, barChart=null, reviewChart=null, facultyChart=null,
+    facultyRadar=null, facultyStacked=null, groupScoreChart=null, groupReviewChart=null;
+let facultySort = { key:'totalStudents', dir:-1 };
+let groupSort   = 'serial';
+let groupHeatSort = { key:'serial', dir:1 };
+let rooms = [];         // [{id,name,capacity,faculty:[...]}]
+let ALLOC_CACHE = null;
+const state = { filter:'all', q:'', tab:'overview',
+                group:'', course:'', faculty:'', project:'' };
+const $ = id => document.getElementById(id);
+
+/* ===== NEW: faculty → groups → students view state ===== */
+let facViewMode    = 'groups';   // 'groups' | 'students'
+let facViewFaculty = '';
+let facViewGroup   = '';
+let facViewQuery   = '';
+const facCollapsed = {};
+
+/* ============================================================ */
+window.addEventListener('load', () => {
+  try { rooms = JSON.parse(localStorage.getItem(ROOMS_LS_KEY) || '[]'); } catch(e){ rooms = []; }
+  rooms.forEach(r => { if (!Array.isArray(r.faculty)) r.faculty = r.faculty ? [r.faculty] : []; });
+  load(false);
+});
+
+function load(force) {
+  $('loader').hidden = false;
+  $('btnRefresh').disabled = true;
+  google.script.run
+    .withSuccessHandler(onData)
+    .withFailureHandler(onError)
+    .getDashboardData(force);
+}
+
+function onData(res) {
+  $('loader').hidden = true;
+  $('btnRefresh').disabled = false;
+  if (!res || res.ok === false) { onError(res && res.error ? res.error : 'Unknown error'); return; }
+
+  DATA = res;
+  $('subtitle').textContent = res.total + ' students · ' + res.groups.length +
+    ' groups · ' + res.faculty.length + ' faculty · updated ' + res.updatedAt;
+
+  const st = res.sheetStatus || {};
+  $('foot').innerHTML = Object.keys(st).map(function (k) {
+    const s = st[k];
+    return (s.found ? '✔' : '✘') + ' ' + k + ' → "' + s.actual + '" (' + s.rows + ' rows)';
+  }).join('  •  ');
+
+  renderTabs();
+  renderKpis();
+  renderChips();
+  renderCharts();
+  renderFilterOptions();
+  renderTable();
+  renderReviewStats();
+  renderFacultyTable();
+  renderFacultyVisuals();
+  renderFacultyGroupGrid();
+  renderGroups();
+  renderGroupVisuals();
+  renderFacultyStudentView();   /* NEW */
+  renderFacultyInputs();
+  renderRooms();
+}
+
+function onError(err) {
+  $('loader').hidden = true;
+  $('btnRefresh').disabled = false;
+  const msg = (err && err.message) ? err.message : String(err);
+  $('subtitle').textContent = 'Error: ' + msg;
+  $('empty').hidden = false;
+  $('empty').textContent = '⚠ ' + msg;
+  console.error(err);
+}
+
+/* ============================================================ */
+function renderTabs() {
+  $('tabs').innerHTML = TABS.map(t => {
+    let badge = '';
+    if (DATA) {
+      if (t.key === 'groups')  badge = '<span class="badge">' + DATA.groups.length + '</span>';
+      if (t.key === 'faculty') badge = '<span class="badge">' + DATA.faculty.length + '</span>';
+      if (t.key === 'rooms')   badge = '<span class="badge">' + DATA.counts.totalGroups + '</span>';
+    }
+    return `<button class="tab${state.tab === t.key ? ' active' : ''}" data-tab="${t.key}">${t.label}${badge}</button>`;
+  }).join('');
+
+  document.querySelectorAll('.tab').forEach(el => {
+    el.addEventListener('click', () => {
+      state.tab = el.dataset.tab;
+      document.querySelectorAll('.section').forEach(s =>
+        s.classList.toggle('active', s.dataset.tab === state.tab));
+      renderTabs();
+    });
+  });
+}
+
+/* ============================================================ */
+function renderKpis() {
+  const c = DATA.counts;
+  $('kpis').innerHTML = KPI.map(k => {
+    const val = k.key === 'total' ? DATA.total :
+                k.key === 'totalGroups' ? c.totalGroups : (c[k.key] || 0);
+    const pct = (k.key === 'total' || k.key === 'totalGroups') ? null :
+                (DATA.total ? Math.round((val / DATA.total) * 100) : 0);
+    const active = state.filter === k.filter ? ' active' : '';
+    return `<div class="kpi${active}" style="--accent:${k.color}" data-filter="${k.filter}">
+      <div class="bar"></div>
+      <div class="lbl">${k.label}</div>
+      <div class="num">${val}</div>
+      <div class="sub">${k.key === 'total' ? 'all records' :
+                       k.key === 'totalGroups' ? 'distinct project groups' :
+                       pct + '% of total'}</div>
+    </div>`;
+  }).join('');
+
+  document.querySelectorAll('.kpi').forEach(el => {
+    el.addEventListener('click', () => {
+      const f = el.dataset.filter;
+      if (f === 'groups') {
+        state.tab = 'groups';
+        document.querySelectorAll('.section').forEach(s =>
+          s.classList.toggle('active', s.dataset.tab === 'groups'));
+        renderTabs();
+        return;
+      }
+      state.filter = f;
+      renderKpis(); renderChips(); renderTable();
+    });
+  });
+}
+
+function renderChips() {
+  $('chips').innerHTML = CHIPS.map(c =>
+    `<button class="chip${state.filter === c.key ? ' active' : ''}" data-filter="${c.key}">${c.label}</button>`
+  ).join('');
+  document.querySelectorAll('.chip').forEach(el => {
+    el.addEventListener('click', () => {
+      state.filter = el.dataset.filter;
+      renderKpis(); renderChips(); renderTable();
+    });
+  });
+}
+
+/* ============================================================ */
+function renderCharts() {
+  const c = DATA.counts;
+  const donutData = {
+    labels: CAT.map(x => x.label),
+    datasets: [{ data: CAT.map(x => c[x.key] || 0), backgroundColor: CAT.map(x => x.color),
+      borderWidth: 3, borderColor: '#fff', hoverOffset: 8 }]
+  };
+  const barData = {
+    labels: CAT.map(x => x.label),
+    datasets: [{ label:'Students', data: CAT.map(x => c[x.key] || 0),
+      backgroundColor: CAT.map(x => x.color), borderRadius:8, maxBarThickness:46 }]
+  };
+
+  if (donutChart) { donutChart.data = donutData; donutChart.update(); barChart.data = barData; barChart.update(); }
+  else {
+    donutChart = new Chart($('donut'), {
+      type:'doughnut', data:donutData,
+      options:{ responsive:true, maintainAspectRatio:false, cutout:'60%',
+        plugins:{ legend:{ position:'right', labels:{ boxWidth:12, usePointStyle:true, font:{size:12} } } } }
+    });
+    barChart = new Chart($('bar'), {
+      type:'bar', data:barData,
+      options:{ responsive:true, maintainAspectRatio:false, indexAxis:'y',
+        plugins:{ legend:{ display:false } },
+        scales:{ x:{ beginAtZero:true, grid:{ color:'#f0f2f8' }, ticks:{ precision:0 } },
+                 y:{ grid:{ display:false } } } }
+    });
+  }
+  renderFacultyCharts();
+}
+
+function renderFacultyCharts() {
+  const rs = DATA.reviewStats || {};
+  const reviewData = {
+    labels: REVIEW_KEYS.map(k => rs[k] ? rs[k].label.split(' · ')[0] : k.toUpperCase()),
+    datasets: [
+      { label:'Average', data: REVIEW_KEYS.map(k => rs[k] ? rs[k].avg : 0),
+        backgroundColor:'#4f46e5', borderRadius:6, maxBarThickness:40 },
+      { label:'Max', data: REVIEW_KEYS.map(k => rs[k] ? rs[k].max : 0),
+        backgroundColor:'#e0e7ff', borderRadius:6, maxBarThickness:40 }
+    ]
+  };
+  if (reviewChart) { reviewChart.data = reviewData; reviewChart.update(); }
+  else {
+    reviewChart = new Chart($('reviewChart'), {
+      type:'bar', data:reviewData,
+      options:{ responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ position:'bottom', labels:{ boxWidth:12, usePointStyle:true } } },
+        scales:{ y:{ beginAtZero:true, grid:{ color:'#f0f2f8' } }, x:{ grid:{ display:false } } } }
+    });
+  }
+
+  const topFaculty = (DATA.faculty || []).filter(f => f.avgTotal !== null).slice(0, 10);
+  const facData = {
+    labels: topFaculty.map(f => truncate(f.name, 22)),
+    datasets: [{ label:'Avg Total /100', data: topFaculty.map(f => f.avgTotal),
+      backgroundColor:'#06b6d4', borderRadius:8, maxBarThickness:34 }]
+  };
+  if (facultyChart) { facultyChart.data = facData; facultyChart.update(); }
+  else {
+    facultyChart = new Chart($('facultyChart'), {
+      type:'bar', data:facData,
+      options:{ responsive:true, maintainAspectRatio:false, indexAxis:'y',
+        plugins:{ legend:{ display:false } },
+        scales:{ x:{ beginAtZero:true, max:100, grid:{ color:'#f0f2f8' } }, y:{ grid:{ display:false } } } }
+    });
+  }
+}
+
+function truncate(s, n) { return s.length > n ? s.slice(0, n - 1) + '…' : s; }
+
+/* ============================================================ */
+function renderFilterOptions() {
+  const cs = $('filterCourse');
+  cs.innerHTML = '<option value="">All Courses (' + DATA.courseList.length + ')</option>' +
+    DATA.courseList.map(c => `<option value="${esc(c.name)}">${esc(c.name)} (${c.count})</option>`).join('');
+  cs.value = state.course;
+
+  const fs = $('filterFaculty');
+  fs.innerHTML = '<option value="">All Faculty (' + DATA.facultyList.length + ')</option>' +
+    DATA.facultyList.map(f => `<option value="${esc(f.name)}">${esc(f.name)} (${f.count})</option>`).join('');
+  fs.value = state.faculty;
+
+  const ps = $('filterProject');
+  ps.innerHTML = '<option value="">All Projects (' + DATA.topicList.length + ')</option>' +
+    DATA.topicList.map(t => `<option value="${esc(t.name)}">${esc(truncate(t.name, 70))} (${t.count})</option>`).join('');
+  ps.value = state.project;
+
+  const gs = $('filterGroup');
+  gs.innerHTML = '<option value="">All Groups (' + DATA.groups.length + ')</option>' +
+    DATA.groups.map(g =>
+      `<option value="${esc(g.id)}">${g.serial ? '#' + g.serial + ' · ' : ''}${esc(truncate(g.topic, 60))} (${g.memberCount})</option>`
+    ).join('');
+  gs.value = state.group;
+
+  cs.onchange = e => { state.course = e.target.value; renderFilterPills(); renderTable(); };
+  fs.onchange = e => { state.faculty = e.target.value; renderFilterPills(); renderTable(); };
+  ps.onchange = e => { state.project = e.target.value; renderFilterPills(); renderTable(); };
+  gs.onchange = e => { state.group = e.target.value; renderFilterPills(); renderTable(); };
+
+  $('clearFilters').onclick = () => {
+    state.course = ''; state.faculty = ''; state.project = '';
+    state.group = ''; state.filter = 'all'; state.q = ''; $('search').value = '';
+    renderFilterOptions(); renderKpis(); renderChips(); renderFilterPills(); renderTable();
+  };
+
+  renderFilterPills();
+}
+
+function renderFilterPills() {
+  const pills = [];
+  if (state.filter !== 'all') pills.push({ label:'Category', value:(CHIPS.find(c=>c.key===state.filter)||{}).label, clear:()=>{state.filter='all';renderKpis();renderChips();} });
+  if (state.course)  pills.push({ label:'Course',  value:state.course,  clear:()=>{state.course='';$('filterCourse').value='';} });
+  if (state.faculty) pills.push({ label:'Faculty', value:state.faculty, clear:()=>{state.faculty='';$('filterFaculty').value='';} });
+  if (state.project) pills.push({ label:'Project', value:truncate(state.project, 40), clear:()=>{state.project='';$('filterProject').value='';} });
+  if (state.group)   pills.push({ label:'Group',   value:(DATA.groups.find(g=>g.id===state.group)||{}).topic || state.group, clear:()=>{state.group='';$('filterGroup').value='';} });
+  if (state.q)       pills.push({ label:'Search',  value:state.q, clear:()=>{state.q='';$('search').value='';} });
+
+  if (!pills.length) { $('activeFilters').innerHTML = ''; return; }
+
+  $('activeFilters').innerHTML = '<span style="font-size:11.5px;color:#6b7280;font-weight:600;align-self:center">Active filters:</span>' +
+    pills.map((p, i) => `<span class="filter-pill"><b>${p.label}:</b> ${esc(p.value)} <span class="x" data-pill="${i}">×</span></span>`).join('');
+
+  document.querySelectorAll('[data-pill]').forEach(el => {
+    el.addEventListener('click', () => {
+      const i = +el.dataset.pill;
+      pills[i].clear();
+      renderFilterOptions(); renderKpis(); renderChips(); renderFilterPills(); renderTable();
+    });
+  });
+}
+
+/* ============================================================ */
+function matchesAll(s) {
+  if (state.filter !== 'all' && !s.flags[state.filter]) return false;
+  if (state.course  && s.course  !== state.course)  return false;
+  if (state.faculty && s.mentor  !== state.faculty) return false;
+  if (state.project && s.topic   !== state.project) return false;
+  if (state.group   && s.groupId !== state.group)   return false;
+  if (state.q) {
+    const hay = [s.name, s.enrollment, s.course, s.mentor, s.topic, s.email].join(' ').toLowerCase();
+    if (hay.indexOf(state.q) === -1) return false;
+  }
+  return true;
+}
+
+function renderTable() {
+  const rows = DATA.students.filter(matchesAll);
+
+  const parts = ['Students'];
+  if (state.filter !== 'all') parts.push((CHIPS.find(c=>c.key===state.filter)||{}).label);
+  $('tableTitle').textContent = parts.join(' · ') + ' (' + rows.length + ')';
+
+  if (!rows.length) {
+    $('tbody').innerHTML = '';
+    $('empty').hidden = false; $('empty').textContent = 'No matching records found.';
+    return;
+  }
+  $('empty').hidden = true;
+
+  $('tbody').innerHTML = rows.map((s, i) => {
+    const tags = [];
+    CAT.forEach(c => { if (s.flags[c.key]) tags.push(`<span class="tag" style="background:${c.color}">${c.label}</span>`); });
+    const tagHtml = tags.length ? tags.join('') : '<span class="muted">—</span>';
+    const groupCell = s.groupId
+      ? `<span class="gid-badge" style="font-size:11px">${s.groupSerial ? '#' + s.groupSerial : s.groupId}</span>`
+      : '<span class="muted">—</span>';
+    const mentorCell = s.mentor
+      ? `<span class="mentor-inline">${esc(s.mentor)}</span>`
+      : '<span class="muted">—</span>';
+    return `<tr>
+      <td class="muted">${i + 1}</td>
+      <td class="em">${esc(s.enrollment || '—')}</td>
+      <td class="nm">${esc(s.name)}</td>
+      <td>${esc(s.course || '—')}</td>
+      <td>${esc(s.division || '—')}</td>
+      <td>${groupCell}</td>
+      <td>${mentorCell}</td>
+      <td>${tagHtml}</td>
+      <td class="em">${esc(s.topic || '—')}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ============================================================ */
+function renderReviewStats() {
+  const rs = DATA.reviewStats || {};
+  const colors = ['#6366f1','#06b6d4','#8b5cf6','#f59e0b','#10b981','#ef4444'];
+  $('reviewStats').innerHTML = REVIEW_KEYS.map((k, i) => {
+    const r = rs[k] || {};
+    const avg = r.avg !== null && r.avg !== undefined ? r.avg : '—';
+    const pct = r.pct || 0, col = colors[i];
+    return `<div class="kpi" style="--accent:${col};cursor:default">
+      <div class="bar"></div>
+      <div class="lbl">${r.label || k.toUpperCase()}</div>
+      <div class="num" style="font-size:22px">${avg}<span style="font-size:14px;color:var(--muted)"> / ${r.max}</span></div>
+      <div class="prog" style="margin-top:8px">
+        <div class="prog-bar"><div class="prog-fill" style="width:${pct}%;background:${col}"></div></div>
+        <span class="muted" style="font-size:11px">${pct}%</span>
+      </div>
+      <div class="sub" style="margin-top:6px">✔ ${r.filled} filled · ⏳ ${r.missing} missing</div>
+    </div>`;
+  }).join('');
+}
+
+/* ============================================================ */
+function renderFacultyTable() {
+  const fac = (DATA.faculty || []).slice();
+  fac.sort((a, b) => {
+    const ka = a[facultySort.key], kb = b[facultySort.key];
+    if (ka === null || ka === undefined) return 1;
+    if (kb === null || kb === undefined) return -1;
+    if (typeof ka === 'string') return facultySort.dir * ka.localeCompare(kb);
+    return facultySort.dir * (ka - kb);
+  });
+
+  if (!fac.length) {
+    $('facultyBody').innerHTML = '<tr><td colspan="14" class="empty">No faculty data.</td></tr>';
+    return;
+  }
+
+  $('facultyBody').innerHTML = fac.map(f => {
+    const comp = f.withData ? Math.round((f.completed / f.withData) * 100) : 0;
+    const compColor = comp >= 75 ? '#10b981' : comp >= 40 ? '#f59e0b' : '#ef4444';
+    return `<tr>
+      <td class="nm">${esc(f.name)}</td>
+      <td class="num-cell">${f.totalStudents}</td>
+      <td class="num-cell" style="font-weight:700;color:#0ea5e9">${f.totalGroups}</td>
+      <td class="num-cell">${f.udp}</td>
+      <td class="num-cell">${f.idp}</td>
+      <td class="num-cell">${f.consultancy}</td>
+      <td class="num-cell">${fmt(f.avgR1)}</td>
+      <td class="num-cell">${fmt(f.avgR2)}</td>
+      <td class="num-cell">${fmt(f.avgR3)}</td>
+      <td class="num-cell">${fmt(f.avgR4)}</td>
+      <td class="num-cell">${fmt(f.avgR5)}</td>
+      <td class="num-cell">${fmt(f.avgR6)}</td>
+      <td class="num-cell" style="font-weight:700">${fmt(f.avgTotal)}</td>
+      <td>
+        <div class="prog">
+          <div class="prog-bar"><div class="prog-fill" style="width:${comp}%;background:${compColor}"></div></div>
+          <span class="muted" style="font-size:11px">${f.completed}/${f.withData}</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  document.querySelectorAll('#facultyTable thead th[data-sort]').forEach(th => {
+    th.style.cursor = 'pointer';
+    th.onclick = () => {
+      const k = th.dataset.sort;
+      if (facultySort.key === k) facultySort.dir *= -1;
+      else { facultySort.key = k; facultySort.dir = -1; }
+      renderFacultyTable();
+    };
+  });
+}
+
+function fmt(v) {
+  if (v === null || v === undefined) return '<span class="muted">—</span>';
+  return v.toFixed ? v.toFixed(2) : v;
+}
+
+/* ============================================================ */
+function renderFacultyVisuals() {
+  const fac = (DATA.faculty || []).filter(f => f.withData > 0);
+  const top6 = fac.slice(0, 6), top10 = fac.slice(0, 10);
+  const palette = ['#6366f1','#06b6d4','#8b5cf6','#f59e0b','#10b981','#ef4444',
+                   '#ec4899','#14b8a6','#a855f7','#f97316'];
+
+  const radarData = {
+    labels: REVIEW_KEYS.map(k => 'R' + k.slice(1) + ' /' + REVIEW_MAX[k]),
+    datasets: top6.map((f, i) => ({
+      label: truncate(f.name, 22),
+      data: REVIEW_KEYS.map(k => {
+        const v = f['avg' + k.toUpperCase()];
+        return v !== null && v !== undefined ? +((v / REVIEW_MAX[k]) * 100).toFixed(1) : 0;
+      }),
+      borderColor: palette[i % palette.length],
+      backgroundColor: hexA(palette[i % palette.length], 0.14),
+      borderWidth: 2, pointBackgroundColor: palette[i % palette.length],
+      pointRadius: 4, pointHoverRadius: 6
+    }))
+  };
+
+  if (facultyRadar) { facultyRadar.data = radarData; facultyRadar.update(); }
+  else {
+    facultyRadar = new Chart($('facultyRadar'), {
+      type:'radar', data:radarData,
+      options:{ responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ position:'bottom', labels:{ boxWidth:12, usePointStyle:true, font:{size:11} } },
+                  tooltip:{ callbacks:{ label: c => c.dataset.label + ': ' + c.parsed.r + '%' } } },
+        scales:{ r:{ beginAtZero:true, max:100, ticks:{ stepSize:25, backdropColor:'transparent' },
+                     grid:{ color:'#e5e8f0' }, angleLines:{ color:'#e5e8f0' }, pointLabels:{ font:{size:11} } } } }
+    });
+  }
+
+  const stackedData = {
+    labels: top10.map(f => truncate(f.name, 18)),
+    datasets: REVIEW_KEYS.map((k, i) => ({
+      label: 'R' + k.slice(1) + ' (/' + REVIEW_MAX[k] + ')',
+      data: top10.map(f => {
+        const v = f['avg' + k.toUpperCase()];
+        return v !== null && v !== undefined ? v : 0;
+      }),
+      backgroundColor: palette[i % palette.length], borderRadius:4, maxBarThickness:34
+    }))
+  };
+
+  if (facultyStacked) { facultyStacked.data = stackedData; facultyStacked.update(); }
+  else {
+    facultyStacked = new Chart($('facultyStacked'), {
+      type:'bar', data:stackedData,
+      options:{ responsive:true, maintainAspectRatio:false, indexAxis:'y',
+        plugins:{ legend:{ position:'bottom', labels:{ boxWidth:12, usePointStyle:true, font:{size:10} } } },
+        scales:{ x:{ stacked:true, beginAtZero:true, grid:{ color:'#f0f2f8' } },
+                 y:{ stacked:true, grid:{ display:false } } } }
+    });
+  }
+
+  renderFacultyHeatmap();
+}
+
+function hexA(hex, a) {
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  return 'rgba(' + r + ',' + g + ',' + b + ',' + a + ')';
+}
+
+function heatColor(pct) {
+  if (pct === null || pct === undefined) return 'transparent';
+  if (pct < 40) return 'rgba(239,68,68,' + (0.15 + pct * 0.005) + ')';
+  if (pct < 70) return 'rgba(245,158,11,' + (0.15 + pct * 0.004) + ')';
+  return 'rgba(16,185,129,' + (0.15 + pct * 0.005) + ')';
+}
+
+function renderFacultyHeatmap() {
+  const fac = (DATA.faculty || []).filter(f => f.withData > 0);
+  if (!fac.length) {
+    $('facultyHeatBody').innerHTML = '<tr><td colspan="10" class="empty">No faculty data.</td></tr>';
+    return;
+  }
+  $('facultyHeatBody').innerHTML = fac.map(f => {
+    const cell = (v, max) => {
+      if (v === null || v === undefined) return '<td class="val muted">—</td>';
+      const pct = Math.round((v / max) * 100);
+      return '<td class="val" style="background:' + heatColor(pct) + '">' +
+             v.toFixed(2) + '<div style="font-size:10px;opacity:.7">' + pct + '%</div></td>';
+    };
+    const tp = f.avgTotal !== null ? Math.round(f.avgTotal) : null;
+    return '<tr>' +
+      '<td class="fac-name">' + esc(f.name) + '</td>' +
+      '<td class="val">' + f.totalStudents + '</td>' +
+      '<td class="val" style="color:#0ea5e9;font-weight:700">' + f.totalGroups + '</td>' +
+      cell(f.avgR1,5) + cell(f.avgR2,10) + cell(f.avgR3,15) +
+      cell(f.avgR4,20) + cell(f.avgR5,20) + cell(f.avgR6,30) +
+      '<td class="val" style="font-weight:700;background:' + heatColor(tp) + '">' +
+      (f.avgTotal !== null ? f.avgTotal.toFixed(2) : '—') + '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+/* ============================================================ */
+function renderFacultyGroupGrid() {
+  const fac = (DATA.faculty || []).filter(f => f.groupList && f.groupList.length);
+  if (!fac.length) {
+    $('facGroupGrid').innerHTML = '<div class="empty">No faculty-group allocation data.</div>';
+    return;
+  }
+  $('facGroupGrid').innerHTML = fac.map(f => {
+    const init = (f.name.match(/[A-Za-z]/) || ['?'])[0].toUpperCase();
+    const groupsHtml = f.groupList.map(g =>
+      `<div class="fac-group-item" data-jump-group="${esc(g.id)}">
+        <span class="gid">${g.serial ? '#' + g.serial : g.id}</span>
+        <span class="gtopic" title="${esc(g.topic)}">${esc(g.topic)}</span>
+        ${g.avgTotal !== null ? '<span class="gscore">' + g.avgTotal + '</span>' : ''}
+      </div>`
+    ).join('');
+    return `<div class="fac-group-card">
+      <div class="fac-group-head">
+        <div class="avatar">${init}</div>
+        <div class="info">
+          <div class="name" title="${esc(f.name)}">${esc(f.name)}</div>
+          <div class="stats">${f.totalGroups} group${f.totalGroups>1?'s':''} · ${f.totalStudents} students</div>
+        </div>
+      </div>
+      <div class="fac-group-list">${groupsHtml}</div>
+    </div>`;
+  }).join('');
+
+  document.querySelectorAll('[data-jump-group]').forEach(el => {
+    el.onclick = () => {
+      state.group = el.dataset.jumpGroup;
+      state.course = ''; state.faculty = ''; state.project = ''; state.filter = 'all';
+      state.tab = 'overview';
+      document.querySelectorAll('.section').forEach(s =>
+        s.classList.toggle('active', s.dataset.tab === 'overview'));
+      renderTabs(); renderKpis(); renderChips(); renderFilterOptions(); renderTable();
+    };
+  });
+}
+
+/* ============================================================ */
+function renderGroupVisuals() {
+  const groups = (DATA.groups || []).filter(g => g.avgTotal !== null);
+  if (!groups.length) return;
+
+  const top25 = groups.slice().sort((a, b) => b.avgTotal - a.avgTotal).slice(0, 25);
+  const scoreData = {
+    labels: top25.map(g => g.serial ? 'G#' + g.serial : g.id),
+    datasets: [{
+      label: 'Avg Total /100', data: top25.map(g => g.avgTotal),
+      backgroundColor: top25.map(g => g.avgTotal >= 80 ? '#10b981' : g.avgTotal >= 60 ? '#f59e0b' : '#ef4444'),
+      borderRadius: 6, maxBarThickness: 24
+    }]
+  };
+  if (groupScoreChart) { groupScoreChart.data = scoreData; groupScoreChart.update(); }
+  else {
+    groupScoreChart = new Chart($('groupScoreChart'), {
+      type:'bar', data:scoreData,
+      options:{ responsive:true, maintainAspectRatio:false, indexAxis:'y',
+        plugins:{ legend:{ display:false },
+          tooltip:{ callbacks:{ afterLabel: c => {
+            const g = top25[c.dataIndex];
+            return 'Topic: ' + truncate(g.topic, 60) + '\nFaculty: ' + (g.mentor || '—') +
+                   '\nMembers: ' + g.memberCount;
+          } } } },
+        scales:{ x:{ beginAtZero:true, max:100, grid:{ color:'#f0f2f8' } },
+                 y:{ grid:{ display:false }, ticks:{ font:{size:10} } } } }
+    });
+  }
+
+  const top15 = groups.slice().sort((a, b) => b.avgTotal - a.avgTotal).slice(0, 15);
+  const palette = ['#6366f1','#06b6d4','#8b5cf6','#f59e0b','#10b981','#ef4444'];
+  const stackData = {
+    labels: top15.map(g => g.serial ? 'G#' + g.serial : g.id),
+    datasets: REVIEW_KEYS.map((k, i) => ({
+      label: 'R' + k.slice(1) + ' (/' + REVIEW_MAX[k] + ')',
+      data: top15.map(g => {
+        const v = g['avg' + k.toUpperCase()];
+        return v !== null && v !== undefined ? v : 0;
+      }),
+      backgroundColor: palette[i], borderRadius:4, maxBarThickness:28
+    }))
+  };
+  if (groupReviewChart) { groupReviewChart.data = stackData; groupReviewChart.update(); }
+  else {
+    groupReviewChart = new Chart($('groupReviewChart'), {
+      type:'bar', data:stackData,
+      options:{ responsive:true, maintainAspectRatio:false, indexAxis:'y',
+        plugins:{ legend:{ position:'bottom', labels:{ boxWidth:12, usePointStyle:true, font:{size:10} } } },
+        scales:{ x:{ stacked:true, beginAtZero:true, grid:{ color:'#f0f2f8' } },
+                 y:{ stacked:true, grid:{ display:false }, ticks:{ font:{size:10} } } } }
+    });
+  }
+
+  renderGroupHeatmap();
+}
+
+function renderGroupHeatmap() {
+  const list = (DATA.groups || []).slice();
+  if (!list.length) {
+    $('groupHeatBody').innerHTML = '<tr><td colspan="11" class="empty">No groups found.</td></tr>';
+    return;
+  }
+  list.sort((a, b) => {
+    const ka = a[groupHeatSort.key], kb = b[groupHeatSort.key];
+    if (ka === null || ka === undefined) return 1;
+    if (kb === null || kb === undefined) return -1;
+    if (typeof ka === 'string') return groupHeatSort.dir * ka.localeCompare(kb);
+    return groupHeatSort.dir * (ka - kb);
+  });
+
+  $('groupHeatBody').innerHTML = list.map(g => {
+    const cell = (v, max) => {
+      if (v === null || v === undefined) return '<td class="val muted">—</td>';
+      const pct = Math.round((v / max) * 100);
+      return '<td class="val" style="background:' + heatColor(pct) + '">' + v.toFixed(2) + '</td>';
+    };
+    const tp = g.avgTotal !== null ? Math.round(g.avgTotal) : null;
+    return '<tr>' +
+      '<td class="fac-name" style="font-weight:800;color:#312e81">' +
+        (g.serial ? '#' + g.serial : g.id) + '</td>' +
+      '<td style="text-align:left;max-width:340px">' + esc(truncate(g.topic, 60)) + '</td>' +
+      '<td style="text-align:left;font-size:12px;color:#4f46e5;font-weight:600;white-space:normal;max-width:200px">' +
+        esc(g.mentor || '—') + '</td>' +
+      '<td class="val">' + g.memberCount + '</td>' +
+      cell(g.avgR1,5) + cell(g.avgR2,10) + cell(g.avgR3,15) +
+      cell(g.avgR4,20) + cell(g.avgR5,20) + cell(g.avgR6,30) +
+      '<td class="val" style="font-weight:700;background:' + heatColor(tp) + '">' +
+      (g.avgTotal !== null ? g.avgTotal.toFixed(2) : '—') + '</td>' +
+    '</tr>';
+  }).join('');
+
+  document.querySelectorAll('#groupHeatTable thead th[data-sort]').forEach(th => {
+    th.style.cursor = 'pointer';
+    th.onclick = () => {
+      const k = th.dataset.sort;
+      if (groupHeatSort.key === k) groupHeatSort.dir *= -1;
+      else { groupHeatSort.key = k; groupHeatSort.dir = -1; }
+      renderGroupHeatmap();
+    };
+  });
+}
+
+/* ============================================================ */
+function renderGroups() {
+  const list = (DATA.groups || []).slice();
+  $('groupsCount').textContent = list.length + ' groups · ' + DATA.total + ' students';
+
+  $('groupSortChips').innerHTML = GROUP_SORTS.map(s =>
+    `<button class="chip${groupSort === s.key ? ' active' : ''}" data-sort="${s.key}">${s.label}</button>`
+  ).join('');
+  document.querySelectorAll('#groupSortChips .chip').forEach(el => {
+    el.onclick = () => { groupSort = el.dataset.sort; renderGroups(); };
+  });
+
+  if (!list.length) { $('groupsContainer').innerHTML = ''; $('groupsEmpty').hidden = false; return; }
+  $('groupsEmpty').hidden = true;
+
+  if (groupSort === 'members')       list.sort((a, b) => b.memberCount - a.memberCount);
+  else if (groupSort === 'avgScore') list.sort((a, b) => (b.avgTotal || 0) - (a.avgTotal || 0));
+  else if (groupSort === 'topic')    list.sort((a, b) => a.topic.localeCompare(b.topic));
+  else if (groupSort === 'faculty')  list.sort((a, b) => (a.mentor || 'zzz').localeCompare(b.mentor || 'zzz'));
+  else                               list.sort((a, b) => (a.serial || 999) - (b.serial || 999));
+
+  $('groupsContainer').innerHTML = list.map(g => {
+    const catTags = g.categories.map(k => {
+      const c = CAT.find(x => x.key === k);
+      return c ? `<span class="tag" style="background:${c.color}">${c.label}</span>` : '';
+    }).join('');
+
+    const init = (g.mentor || '?').replace(/^(Prof\.?|Dr\.?|Mr\.?|Mrs\.?|Ms\.?)\s*/i,'').trim().match(/[A-Za-z]/);
+    const fi = init ? init[0].toUpperCase() : '?';
+
+    const rows = g.members.map((m, mi) => {
+      const r = m.reviews || {};
+      const total = REVIEW_KEYS.reduce((s, k) => s + (r[k] || 0), 0);
+      const hasAny = REVIEW_KEYS.some(k => r[k] !== null && r[k] !== undefined);
+      return `<tr>
+        <td class="muted">${mi + 1}</td>
+        <td class="em">${esc(m.enrollment || '—')}</td>
+        <td class="nm">${esc(m.name)}</td>
+        <td>${esc(m.course || '—')}</td>
+        <td>${esc(m.division || '—')}</td>
+        <td class="em">${esc(m.technology || '—')}</td>
+        <td class="num-cell">${hasAny ? total.toFixed(1) + ' / 100' : '<span class="muted">—</span>'}</td>
+      </tr>`;
+    }).join('');
+
+    const facBadge = g.mentor
+      ? `<div class="faculty-badge">
+           <span class="avatar">${fi}</span>
+           <span class="name" title="${esc(g.mentor)}">${esc(g.mentor)}</span>
+           <span class="role">Faculty</span>
+         </div>`
+      : '<div class="faculty-badge" style="background:linear-gradient(135deg,#94a3b8,#64748b)"><span class="avatar">?</span><span class="name">No faculty assigned</span></div>';
+
+    return `<div class="group-card">
+      <div class="group-head">
+        <div class="left">
+          <div class="group-title">
+            ${g.serial ? '<span class="gid-badge">Group #' + g.serial + '</span>' : '<span class="gid-badge">' + g.id + '</span>'}
+            ${esc(g.topic)}
+          </div>
+          <div class="group-meta">
+            <span>👥 <b>${g.memberCount}</b> member${g.memberCount > 1 ? 's' : ''}</span>
+            ${g.avgTotal !== null ? '<span>📊 avg score <b>' + g.avgTotal + ' / 100</b></span>' : ''}
+            <span>${catTags}</span>
+          </div>
+        </div>
+        <div class="right">
+          ${facBadge}
+          <button class="chip" data-group-filter="${g.id}">Filter students →</button>
+        </div>
+      </div>
+      <div class="group-members">
+        <h4>Members</h4>
+        <table>
+          <thead><tr>
+            <th>#</th><th>Enrollment</th><th>Name</th><th>Course</th><th>Division</th>
+            <th>Technology</th><th class="num-cell">Review Total</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.querySelectorAll('[data-group-filter]').forEach(el => {
+    el.onclick = () => {
+      state.group = el.dataset.groupFilter;
+      state.course = ''; state.faculty = ''; state.project = ''; state.filter = 'all';
+      state.tab = 'overview';
+      document.querySelectorAll('.section').forEach(s =>
+        s.classList.toggle('active', s.dataset.tab === 'overview'));
+      renderTabs(); renderKpis(); renderChips(); renderFilterOptions(); renderTable();
+    };
+  });
+}
+
+/* ============================================================ */
+/* NEW: FACULTY → GROUPS → STUDENTS VIEW                         */
+/* ============================================================ */
+function facGroupsOf(f) {
+  const idx = {};
+  (DATA.groups || []).forEach(g => { idx[g.id] = g; });
+  let list = (f.groupList || []).map(x => idx[x.id]).filter(Boolean);
+  if (!list.length) {
+    list = (DATA.groups || []).filter(g => (g.mentor || '') === f.name);
+  }
+  return list;
+}
+
+function studentMatchesQuery(m, q) {
+  if (!q) return true;
+  const hay = [m.name, m.enrollment, m.technology, m.course, m.division, m.contact]
+    .join(' ').toLowerCase();
+  return hay.indexOf(q) !== -1;
+}
+
+function renderFacultyStudentView() {
+  if (!DATA) return;
+
+  /* mode chips */
+  $('facViewChips').innerHTML = [
+    { key:'groups',   label:'📁 Group-wise' },
+    { key:'students', label:'👥 All Students-wise' }
+  ].map(c =>
+    `<button class="chip${facViewMode === c.key ? ' active' : ''}" data-facview="${c.key}">${c.label}</button>`
+  ).join('');
+  document.querySelectorAll('#facViewChips .chip').forEach(el => {
+    el.onclick = () => { facViewMode = el.dataset.facview; renderFacultyStudentView(); };
+  });
+
+  /* faculty select */
+  const fs = $('facViewFaculty');
+  fs.innerHTML = '<option value="">All Faculty (' + (DATA.faculty || []).length + ')</option>' +
+    (DATA.faculty || []).map(f =>
+      `<option value="${esc(f.name)}">${esc(f.name)} — ${f.totalStudents} students / ${f.totalGroups} groups</option>`
+    ).join('');
+  fs.value = facViewFaculty;
+  fs.onchange = e => { facViewFaculty = e.target.value; renderFacultyStudentView(); };
+
+  /* group select */
+  const gs = $('facViewGroup');
+  gs.innerHTML = '<option value="">All Groups (' + (DATA.groups || []).length + ')</option>' +
+    (DATA.groups || []).map(g =>
+      `<option value="${esc(g.id)}">${g.serial ? '#' + g.serial + ' · ' : ''}${esc(truncate(g.topic, 60))} (${g.memberCount})</option>`
+    ).join('');
+  gs.value = facViewGroup;
+  gs.onchange = e => { facViewGroup = e.target.value; renderFacultyStudentView(); };
+
+  /* student search */
+  const si = $('facViewSearch');
+  si.value = facViewQuery;
+  si.oninput = e => { facViewQuery = e.target.value; renderFacultyViewBody(); };
+
+  /* buttons */
+  $('facViewExpand').onclick = () => {
+    Object.keys(facCollapsed).forEach(k => delete facCollapsed[k]);
+    renderFacultyViewBody();
+  };
+  $('facViewCollapse').onclick = () => {
+    (DATA.faculty || []).forEach(f => { facCollapsed[f.name] = true; });
+    renderFacultyViewBody();
+  };
+  $('facViewExport').onclick = exportFacultyView;
+
+  renderFacultyViewBody();
+}
+
+function renderFacultyViewBody() {
+  const q = facViewQuery.trim().toLowerCase();
+
+  const facs = (DATA.faculty || []).filter(f => !facViewFaculty || f.name === facViewFaculty);
+
+  const blocks = facs.map(f => {
+    let groups = facGroupsOf(f);
+
+    if (facViewGroup) groups = groups.filter(g => g.id === facViewGroup);
+
+    if (q) {
+      groups = groups
+        .map(g => Object.assign({}, g, {
+          members: (g.members || []).filter(m => studentMatchesQuery(m, q))
+        }))
+        .filter(g => g.members.length);
+    }
+
+    if (!groups.length) return null;
+
+    const students = [];
+    groups.forEach(g => (g.members || []).forEach(m => students.push({ g: g, m: m })));
+
+    return { f: f, groups: groups, students: students };
+  }).filter(Boolean);
+
+  if (!blocks.length) {
+    $('facViewContainer').innerHTML = '';
+    $('facViewEmpty').hidden = false;
+    return;
+  }
+  $('facViewEmpty').hidden = true;
+
+  $('facViewContainer').innerHTML = blocks.map(b => {
+    const collapsed = !!facCollapsed[b.f.name];
+    const init = (String(b.f.name).match(/[A-Za-z]/) || ['?'])[0].toUpperCase();
+
+    const head = `<div class="fac-view-head" data-fac-toggle="${esc(b.f.name)}">
+        <div class="avatar">${init}</div>
+        <div class="info">
+          <div class="name">${esc(b.f.name)}</div>
+          <div class="stats">
+            ${b.groups.length} group${b.groups.length > 1 ? 's' : ''} ·
+            ${b.students.length} student${b.students.length > 1 ? 's' : ''}${
+              b.f.avgTotal !== null && b.f.avgTotal !== undefined
+                ? ' · avg ' + b.f.avgTotal.toFixed(2) + '/100' : ''}
+          </div>
+        </div>
+        <span class="caret">${collapsed ? '▸' : '▾'}</span>
+      </div>`;
+
+    const body = collapsed ? '' :
+      '<div class="fac-view-body">' +
+        (facViewMode === 'groups' ? facGroupWiseHtml(b.groups) : facStudentWiseHtml(b.students)) +
+      '</div>';
+
+    return `<div class="fac-view-card">${head}${body}</div>`;
+  }).join('');
+
+  document.querySelectorAll('[data-fac-toggle]').forEach(el => {
+    el.onclick = () => {
+      const n = el.dataset.facToggle;
+      if (facCollapsed[n]) delete facCollapsed[n]; else facCollapsed[n] = true;
+      renderFacultyViewBody();
+    };
+  });
+}
+
+/* ---- GROUP-WISE: faculty → each group → its members ---- */
+function facGroupWiseHtml(groups) {
+  return groups.map(g => {
+    const rows = (g.members || []).map((m, i) => {
+      const r = m.reviews || {};
+      const total = REVIEW_KEYS.reduce((s, k) => s + (r[k] || 0), 0);
+      const hasAny = REVIEW_KEYS.some(k => r[k] !== null && r[k] !== undefined);
+      return `<tr>
+        <td class="muted">${i + 1}</td>
+        <td class="em">${esc(m.enrollment || '—')}</td>
+        <td class="nm">${esc(m.name)}</td>
+        <td>${esc(m.course || '—')}</td>
+        <td>${esc(m.division || '—')}</td>
+        <td class="em">${esc(m.technology || '—')}</td>
+        <td class="em">${esc(m.contact || '—')}</td>
+        <td class="num-cell">${hasAny ? total.toFixed(1) + ' / 100' : '<span class="muted">—</span>'}</td>
+      </tr>`;
+    }).join('');
+
+    return `<div class="fv-group">
+      <div class="fv-group-head">
+        <span class="gid-badge">${g.serial ? 'Group #' + g.serial : g.id}</span>
+        <span class="topic">${esc(g.topic || '—')}</span>
+        <span class="meta">
+          ${(g.members || []).length} member${(g.members || []).length > 1 ? 's' : ''}${
+            g.avgTotal !== null && g.avgTotal !== undefined
+              ? ' · avg ' + g.avgTotal.toFixed(2) + '/100' : ''}
+        </span>
+      </div>
+      <div class="fv-scroll">
+        <table class="fv-table">
+          <thead><tr>
+            <th>#</th><th>Enrollment</th><th>Name</th><th>Course</th>
+            <th>Division</th><th>Technology</th><th>Contact</th>
+            <th style="text-align:right">Review Total</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ---- ALL STUDENTS-WISE: faculty → flat list of all their students ---- */
+function facStudentWiseHtml(students) {
+  const rows = students.map((x, i) => {
+    const m = x.m, g = x.g;
+    const r = m.reviews || {};
+    const total = REVIEW_KEYS.reduce((s, k) => s + (r[k] || 0), 0);
+    const hasAny = REVIEW_KEYS.some(k => r[k] !== null && r[k] !== undefined);
+
+    const tags = [];
+    CAT.forEach(c => {
+      if (m.flags && m.flags[c.key]) {
+        tags.push(`<span class="tag" style="background:${c.color}">${c.label}</span>`);
+      }
+    });
+
+    return `<tr>
+      <td class="muted">${i + 1}</td>
+      <td class="em">${esc(m.enrollment || '—')}</td>
+      <td class="nm">${esc(m.name)}</td>
+      <td>${esc(m.course || '—')}</td>
+      <td>${esc(m.division || '—')}</td>
+      <td><span class="gid-badge" style="font-size:11px">${g.serial ? '#' + g.serial : g.id}</span></td>
+      <td class="em" style="max-width:280px">${esc(g.topic || '—')}</td>
+      <td class="em">${esc(m.technology || '—')}</td>
+      <td class="em">${esc(m.contact || '—')}</td>
+      <td>${tags.join('') || '<span class="muted">—</span>'}</td>
+      <td class="num-cell">${hasAny ? total.toFixed(1) + ' / 100' : '<span class="muted">—</span>'}</td>
+    </tr>`;
+  }).join('');
+
+  return `<div class="fv-scroll">
+    <table class="fv-table">
+      <thead><tr>
+        <th>#</th><th>Enrollment</th><th>Name</th><th>Course</th><th>Division</th>
+        <th>Group</th><th>Topic</th><th>Technology</th><th>Contact</th>
+        <th>Category</th><th style="text-align:right">Review Total</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+}
+
+/* ---- EXPORT the current faculty view to Excel ---- */
+function exportFacultyView() {
+  if (!DATA) return;
+  if (typeof XLSX === 'undefined') { alert('Excel library not loaded. Please refresh.'); return; }
+
+  const q = facViewQuery.trim().toLowerCase();
+  const facs = (DATA.faculty || []).filter(f => !facViewFaculty || f.name === facViewFaculty);
+
+  const HEAD = ['#','Faculty','Group','Topic','Enrollment','Student Name','Course',
+                'Division','Technology','Contact','Category','Review Total'];
+  const WIDTHS = [{wch:5},{wch:26},{wch:10},{wch:46},{wch:18},{wch:28},{wch:18},
+                  {wch:10},{wch:22},{wch:16},{wch:22},{wch:12}];
+
+  const sheetDefs = [];
+  const allRows = [HEAD];
+  let n = 0;
+
+  facs.forEach(f => {
+    let groups = facGroupsOf(f);
+    if (facViewGroup) groups = groups.filter(g => g.id === facViewGroup);
+    if (q) {
+      groups = groups
+        .map(g => Object.assign({}, g, {
+          members: (g.members || []).filter(m => studentMatchesQuery(m, q))
+        }))
+        .filter(g => g.members.length);
+    }
+    if (!groups.length) return;
+
+    const rows = [HEAD];
+    groups.forEach(g => (g.members || []).forEach(m => {
+      const r = m.reviews || {};
+      const total = REVIEW_KEYS.reduce((s, k) => s + (r[k] || 0), 0);
+      const cats = CAT.filter(c => m.flags && m.flags[c.key]).map(c => c.label).join(' / ');
+      const row = [
+        ++n, f.name,
+        g.serial ? '#' + g.serial : g.id,
+        g.topic || '', m.enrollment || '', m.name || '', m.course || '',
+        m.division || '', m.technology || '', m.contact || '', cats, total
+      ];
+      rows.push(row);
+      allRows.push(row);
+    }));
+
+    sheetDefs.push({ name: String(f.name), rows: rows });
+  });
+
+  if (allRows.length === 1) { alert('Nothing to export for the current filters.'); return; }
+
+  const wb = XLSX.utils.book_new();
+
+  const wsAll = XLSX.utils.aoa_to_sheet(allRows);
+  wsAll['!cols'] = WIDTHS;
+  XLSX.utils.book_append_sheet(wb, wsAll, 'All Faculty');
+
+  sheetDefs.forEach((def, i) => {
+    const ws = XLSX.utils.aoa_to_sheet(def.rows);
+    ws['!cols'] = WIDTHS;
+    let base = def.name.replace(/[\\\/\?\*\[\]:]/g, '_').trim().slice(0, 31) || ('Faculty ' + (i + 1));
+    let finalName = base, k = 1;
+    while (wb.SheetNames.indexOf(finalName) !== -1) {
+      finalName = base.slice(0, 28) + '_' + (k++);
+    }
+    XLSX.utils.book_append_sheet(wb, ws, finalName);
+  });
+
+  XLSX.writeFile(wb, 'Faculty_Groups_Students_' + new Date().toISOString().slice(0, 10) + '.xlsx');
+}
+
+/* ============================================================ */
+/* CLASSROOM ALLOCATION */
+function saveRooms() { try { localStorage.setItem(ROOMS_LS_KEY, JSON.stringify(rooms)); } catch(e){} }
+
+function renderFacultyInputs() {
+  const n = parseInt($('roomFacCountInput').value, 10) || 1;
+  const wrap = $('facInputsWrap');
+  const prev = [];
+  for (let i = 0; i < 20; i++) {
+    const el = document.getElementById('roomFac_' + i);
+    if (el) prev[i] = el.value;
+  }
+  if (n < 1) {
+    wrap.innerHTML = '<div class="muted" style="grid-column:1/-1;padding:6px">Set "# of Faculty" to at least 1.</div>';
+    return;
+  }
+  let html = '';
+  for (let i = 0; i < n; i++) {
+    html += `<div class="fac-input-item">
+      <label>Faculty ${i + 1} Name</label>
+      <input id="roomFac_${i}" type="text" placeholder="e.g., Prof. A. Sharma" value="${prev[i] ? esc(prev[i]) : ''}">
+    </div>`;
+  }
+  wrap.innerHTML = html;
+}
+
+$('roomFacCountInput').addEventListener('input', renderFacultyInputs);
+$('roomFacCountInput').addEventListener('change', renderFacultyInputs);
+
+function renderRooms() {
+  $('roomCount').textContent = rooms.length;
+  $('noRooms').hidden = rooms.length > 0;
+
+  $('roomList').innerHTML = rooms.map((r, i) => {
+    const facList = Array.isArray(r.faculty) ? r.faculty : [];
+    const facHtml = facList.length
+      ? facList.map((f, idx) =>
+          `<span class="fac-tag"><span class="num">${idx + 1}</span>${esc(f || '(unnamed)')}</span>`
+        ).join('')
+      : '<span class="fac-tag" style="background:#fee2e2;color:#b91c1c">No faculty assigned</span>';
+    return `<div class="room-chip">
+      <div class="head">
+        <div>
+          <div class="name">${esc(r.name)}</div>
+          <div class="cap">Capacity: ${r.capacity} students · ${facList.length} faculty</div>
+        </div>
+        <span class="x" data-remove="${i}" title="Remove">×</span>
+      </div>
+      <div class="fac-list">${facHtml}</div>
+    </div>`;
+  }).join('');
+
+  document.querySelectorAll('[data-remove]').forEach(el => {
+    el.onclick = () => {
+      rooms.splice(+el.dataset.remove, 1);
+      saveRooms(); renderRooms();
+    };
+  });
+
+  if (!rooms.length) {
+    $('allocContainer').hidden = true;
+    $('allocEmpty').hidden = false;
+    $('allocStats').innerHTML = '';
+    $('allocSummary').textContent = '';
+    $('downloadAllocBtn').disabled = true;
+    ALLOC_CACHE = null;
+  }
+}
+
+$('addRoomBtn').onclick = () => {
+  const n = $('roomNameInput').value.trim();
+  const c = parseInt($('roomCapInput').value, 10);
+  const fc = parseInt($('roomFacCountInput').value, 10) || 1;
+
+  if (!n) { alert('Please enter a room name.'); return; }
+  if (!c || c < 1) { alert('Please enter a valid capacity (≥1).'); return; }
+  if (fc < 1) { alert('Please enter at least 1 faculty.'); return; }
+
+  const facultyNames = [];
+  for (let i = 0; i < fc; i++) {
+    const v = (document.getElementById('roomFac_' + i) || {}).value || '';
+    facultyNames.push(v.trim() || ('Faculty ' + (i + 1)));
+  }
+
+  rooms.push({ id: 'R' + Date.now(), name: n, capacity: c, faculty: facultyNames });
+  $('roomNameInput').value = '';
+  $('roomCapInput').value = '';
+  $('roomFacCountInput').value = '1';
+  renderFacultyInputs();
+  saveRooms(); renderRooms();
+};
+
+$('autoGenRoomsBtn').onclick = () => {
+  if (!DATA) return;
+  const totalStudents = DATA.total;
+  const targetRooms = Math.max(1, Math.ceil(totalStudents / 60));
+  const avgSize = Math.ceil(totalStudents / targetRooms);
+  rooms = [];
+  for (let i = 1; i <= targetRooms; i++) {
+    rooms.push({
+      id: 'R' + Date.now() + '_' + i,
+      name: 'Classroom ' + (100 + i),
+      capacity: avgSize,
+      faculty: ['Faculty ' + i]
+    });
+  }
+  saveRooms(); renderRooms();
+};
+
+$('clearRoomsBtn').onclick = () => {
+  if (!rooms.length) return;
+  if (!confirm('Remove all rooms?')) return;
+  rooms = []; saveRooms(); renderRooms();
+};
+
+$('allocateBtn').onclick = () => {
+  if (!DATA) return;
+  if (!rooms.length) { alert('Please add rooms first.'); return; }
+  const missing = rooms.findIndex(r => !r.faculty || !r.faculty.length);
+  if (missing !== -1) {
+    alert('Room "' + rooms[missing].name + '" has no faculty assigned. Please re-add it with faculty names.');
+    return;
+  }
+  allocate();
+};
+
+function allocate() {
+  const groups = (DATA.groups || []).slice();
+
+  groups.sort((a, b) => {
+    const fa = (a.mentor || 'zzz').toLowerCase();
+    const fb = (b.mentor || 'zzz').toLowerCase();
+    if (fa !== fb) return fa.localeCompare(fb);
+    return (a.serial || 999) - (b.serial || 999);
+  });
+
+  const result = rooms.map(r => ({
+    room: r,
+    groups: [],
+    students: 0
+  }));
+
+  let ri = 0;
+  for (const g of groups) {
+    if (ri >= result.length) {
+      const last = result[result.length - 1];
+      last.groups.push(g);
+      last.students += g.memberCount;
+      continue;
+    }
+    const cur = result[ri];
+    if (cur.students + g.memberCount > cur.room.capacity && cur.groups.length > 0) {
+      ri++;
+      if (ri >= result.length) {
+        const last = result[result.length - 1];
+        last.groups.push(g);
+        last.students += g.memberCount;
+        continue;
+      }
+      result[ri].groups.push(g);
+      result[ri].students += g.memberCount;
+    } else {
+      cur.groups.push(g);
+      cur.students += g.memberCount;
+    }
+  }
+
+  result.forEach(r => {
+    r.facultyAssignments = splitGroupsAmongFaculty(r.groups, r.room.faculty);
+  });
+
+  renderAllocation(result);
+}
+
+function splitGroupsAmongFaculty(groups, facultyList) {
+  const F = Math.max(1, facultyList.length);
+  const G = groups.length;
+  const base = Math.floor(G / F);
+  const rem = G % F;
+
+  const chunks = [];
+  let idx = 0;
+  for (let i = 0; i < F; i++) {
+    const take = base + (i < rem ? 1 : 0);
+    chunks.push({
+      faculty: facultyList[i] || ('Faculty ' + (i + 1)),
+      groups: groups.slice(idx, idx + take)
+    });
+    idx += take;
+  }
+  return chunks;
+}
+
+function renderAllocation(result) {
+  ALLOC_CACHE = result;
+
+  const totalStudents = result.reduce((s, r) => s + r.students, 0);
+  const totalGroups = result.reduce((s, r) => s + r.groups.length, 0);
+  const usedRooms = result.filter(r => r.groups.length > 0).length;
+  const allFaculty = new Set();
+  result.forEach(r => r.facultyAssignments.forEach(fa => {
+    if (fa.groups.length > 0 && fa.faculty) allFaculty.add(fa.faculty);
+  }));
+
+  $('allocSummary').textContent = usedRooms + ' rooms · ' +
+    totalGroups + ' groups · ' + totalStudents + ' students';
+
+  $('allocStats').innerHTML =
+    '<span class="stat">🏫 <b>' + usedRooms + '</b> rooms used</span>' +
+    '<span class="stat">🎯 <b>' + totalGroups + '</b> groups allocated</span>' +
+    '<span class="stat">👥 <b>' + totalStudents + '</b> students total</span>' +
+    '<span class="stat">👨‍🏫 <b>' + allFaculty.size + '</b> faculty assigned</span>';
+
+  const rows = [];
+  let idx = 0;
+
+  result.forEach(r => {
+    if (!r.groups.length) return;
+
+    const over = r.students > r.room.capacity;
+    rows.push(
+      `<tr class="room-row">
+        <td colspan="9">
+          <span class="room-pill"><span class="dot"></span>${esc(r.room.name)}</span>
+          &nbsp;&nbsp;·&nbsp;&nbsp; ${r.groups.length} groups · ${r.students} / ${r.room.capacity} students
+          &nbsp;·&nbsp; ${r.room.faculty.length} faculty
+          ${over ? '<span style="color:#ef4444;font-weight:800;margin-left:8px">⚠ OVER CAPACITY</span>' : ''}
+        </td>
+      </tr>`
+    );
+
+    r.facultyAssignments.forEach(fa => {
+      if (!fa.groups.length) return;
+      const totalFacStudents = fa.groups.reduce((s, g) => s + g.memberCount, 0);
+      const facInit = (fa.faculty.match(/[A-Za-z]/) || ['?'])[0].toUpperCase();
+      rows.push(
+        `<tr class="fac-row">
+          <td colspan="9">
+            <span class="fac-pill"><span class="avatar">${facInit}</span>👨‍🏫 ${esc(fa.faculty)}</span>
+            &nbsp;·&nbsp; ${fa.groups.length} group${fa.groups.length > 1 ? 's' : ''}
+            &nbsp;·&nbsp; ${totalFacStudents} students
+          </td>
+        </tr>`
+      );
+
+      fa.groups.forEach(g => {
+        g.members.forEach((m) => {
+          idx++;
+          rows.push(`<tr>
+            <td class="muted">${idx}</td>
+            <td><b>${esc(r.room.name)}</b></td>
+            <td><span class="gid-badge" style="font-size:11px">${g.serial ? '#' + g.serial : g.id}</span></td>
+            <td style="max-width:320px;color:#374151">${esc(g.topic || '—')}</td>
+            <td class="em">${esc(m.enrollment || '—')}</td>
+            <td class="nm">${esc(m.name)}</td>
+            <td class="em">${esc(m.contact || '—')}</td>
+            <td class="em">${esc(m.technology || '—')}</td>
+            <td><span class="mentor-inline">${esc(fa.faculty)}</span></td>
+          </tr>`);
+        });
+      });
+    });
+  });
+
+  $('allocBody').innerHTML = rows.join('') ||
+    '<tr><td colspan="9" class="empty">No students allocated.</td></tr>';
+
+  $('allocContainer').hidden = false;
+  $('allocEmpty').hidden = true;
+  $('downloadAllocBtn').disabled = false;
+}
+
+/* ============================================================ */
+$('downloadAllocBtn').onclick = () => {
+  if (!ALLOC_CACHE || typeof XLSX === 'undefined') {
+    alert('Excel library not loaded. Please refresh and try again.');
+    return;
+  }
+
+  const HEADER = ['#','Classroom / Lab','Group','Group Name / Topic','Enrollment No',
+                  'Student Name','Contact No','Technology','Faculty Name'];
+  const COL_WIDTHS = [
+    { wch: 5 }, { wch: 22 }, { wch: 10 }, { wch: 48 },
+    { wch: 18 }, { wch: 30 }, { wch: 16 }, { wch: 24 }, { wch: 30 }
+  ];
+
+  function buildRowsForRooms(roomList) {
+    const arr = [HEADER];
+    let n = 0;
+    roomList.forEach(r => {
+      if (!r.facultyAssignments) return;
+      r.facultyAssignments.forEach(fa => {
+        if (!fa.groups.length) return;
+        fa.groups.forEach(g => {
+          g.members.forEach(m => {
+            n++;
+            arr.push([
+              n,
+              r.room.name,
+              g.serial ? '#' + g.serial : g.id,
+              g.topic || '',
+              m.enrollment || '',
+              m.name || '',
+              m.contact || '',
+              m.technology || '',
+              fa.faculty || ''
+            ]);
+          });
+        });
+      });
+    });
+    return arr;
+  }
+
+  function sanitizeSheetName(name, idx) {
+    let s = String(name || '').replace(/[\\\/\?\*\[\]:]/g, '_').trim();
+    if (!s) s = 'Room ' + (idx + 1);
+    return s.slice(0, 31);
+  }
+
+  const wb = XLSX.utils.book_new();
+
+  const wsAll = XLSX.utils.aoa_to_sheet(buildRowsForRooms(ALLOC_CACHE));
+  wsAll['!cols'] = COL_WIDTHS;
+  XLSX.utils.book_append_sheet(wb, wsAll, 'All Classes');
+
+  const usedRooms = ALLOC_CACHE.filter(r => r.groups.length);
+  usedRooms.forEach((r, i) => {
+    const ws = XLSX.utils.aoa_to_sheet(buildRowsForRooms([r]));
+    ws['!cols'] = COL_WIDTHS;
+    const sheetName = sanitizeSheetName(r.room.name, i);
+    let finalName = sheetName, suffix = 1;
+    while (wb.SheetNames.indexOf(finalName) !== -1) {
+      finalName = sheetName.slice(0, 28) + '_' + (suffix++);
+    }
+    XLSX.utils.book_append_sheet(wb, ws, finalName);
+  });
+
+  const fname = 'Classroom_Allocation_' + new Date().toISOString().slice(0, 10) + '.xlsx';
+  XLSX.writeFile(wb, fname);
+};
+
+/* ============================================================ */
+$('search').addEventListener('input', e => {
+  state.q = e.target.value;
+  if (DATA) { renderFilterPills(); renderTable(); }
+});
+
+$('btnRefresh').addEventListener('click', () => load(true));
+
+$('btnExport').addEventListener('click', () => {
+  if (!DATA) return;
+  const rows = DATA.students.filter(matchesAll);
+  const head = ['#','Enrollment','Name','Course','Division','Group','Group Topic',
+                'Faculty','Categories','Topic','R1','R2','R3','R4','R5','R6','Total'];
+  const lines = [head.join(',')];
+  rows.forEach((s, i) => {
+    const cats = CAT.filter(c => s.flags[c.key]).map(c => c.label).join(' / ');
+    const r = s.reviews || {};
+    const vals = REVIEW_KEYS.map(k => r[k] !== null && r[k] !== undefined ? r[k] : '');
+    const total = REVIEW_KEYS.reduce((sum, k) => sum + (r[k] || 0), 0);
+    const groupTopic = (DATA.groups.find(g => g.id === s.groupId) || {}).topic || '';
+    lines.push([
+      i + 1, s.enrollment || '', s.name, s.course || '', s.division || '',
+      s.groupSerial || s.groupId || '', groupTopic,
+      s.mentor || '', cats, s.topic || '', ...vals, total
+    ].map(csvCell).join(','));
+  });
+  const blob = new Blob(['\ufeff' + lines.join('\n')], { type:'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'students_' + state.filter + '_' +
+    new Date().toISOString().slice(0, 10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+function esc(v) {
+  return String(v == null ? '' : v)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+function csvCell(v) {
+  const s = String(v == null ? '' : v).replace(/"/g, '""');
+  return /[",\n]/.test(s) ? '"' + s + '"' : s;
+}
+</script>
+</body>
+</html>
